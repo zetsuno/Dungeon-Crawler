@@ -17,6 +17,7 @@
 
 typedef struct dados_players
 {
+    char nome[100];
     int saude; //start = 20, Max = 30
     int peso; // Max = 20
     int atk;
