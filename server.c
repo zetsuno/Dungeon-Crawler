@@ -12,16 +12,20 @@
 #include <unistd.h>
 #include <math.h>
 #define MAX 100
+#define MAX_JOGADORES 10
 
-
+int NSEGUNDOS = 0;
+int njogadores = 0;
 
 typedef struct dados_players
 {
+    int id;     //jogador mestre tem ID = 1
     int saude; //start = 20, Max = 30
     int peso; // Max = 20
     int atk;
     int def;
     char inventory[20][20];
+    int id_sala; //id da sala onde se encontra
     int coin_count; //contador de moedas
 }jogador;
 
@@ -56,6 +60,7 @@ typedef struct dados_monstros
 
 typedef struct dados_room
 {
+    int id;         // 1 = ID da sala inicial
     int p_norte;    // 1 = porta aberta, 0 = porta fechada
     int p_sul;
     int p_este;
@@ -108,6 +113,11 @@ int random_number(int min_num, int max_num)   //genera valor aleatorio entre min
             return result;
 }
 
+void start_timer(int s){
+	NSEGUNDOS++;
+	alarm(1);
+}
+
 
 int avalia_frase(char **palavra, int aux)
 {
@@ -117,23 +127,72 @@ int avalia_frase(char **palavra, int aux)
 
     if(strcmp(palavra[i],"novo") == 0){
         i++;
+        if(i == aux){
+            return -1;
+        }
         timeout_aux = atoi(palavra[i]);
         if(timeout_aux<0){
             printf("[ERRO]: Timeout Invalido!\n");
             return -1;
         }
         i++;
-        str_aux = palavra[i];
-        if(i >= aux)
+        if(i == aux){
             return;
+        }
         else{
+        str_aux = palavra[i];
         f=fopen(str_aux, "rt");
         if(f == NULL){
             printf("[ERRO]: Erro ao abrir o ficheiro '%s'\n", str_aux);
+            return;
+
             }
         }
 
     }
+    if(strcmp(palavra[i], "jogar") == 0){
+        if(NSEGUNDOS < 0){
+            printf("O tempo de se juntar ao jogo excedeu o limite! \n");
+            return;
+            }
+        if(n_jogadores >= MAX_JOGADORES){
+            printf("O jogo já está na sua capacidade máxima de jogadores! \n");
+            }
+            else{
+                system("kill -10 /* pids dos outros jogadores */");
+                printf("Um jogo acabou de ser lançado!\n");
+                initialize_game();
+                system("clear");
+                game();
+            }
+    }
+    if(strcmp(palavra[i], "sair") == 0 && lista_jogadores[i].id_sala == 1){
+        sair();
+        for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        if(lista_jogadores[i].id == 1){
+            getmasterplayer();  //eleger outro jogador mestre
+        }
+        system("kill -11 /* pid filhos */");   // avisa os filhos que o jogador x saiu do jogo
+    }
+    if(strcmp(palavra[i],"terminar") == 0){
+        for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        if(lista_jogadores[i].id == 1){
+
+        system("kill -11 /*pid filhos*/");  //avisa os filhos que o jogo acabou
+        showgameresult();     //mostra o resultado do jogo: moedas dos users, e quem tem mais, ou seja, quem ganhou.
+        return;
+        }
+        else{
+            printf("Você não é o jogador mestre! Não tem permissão para acabar com o jogo!\n");
+        }
+    }
+    return 7;
 }
 
 void help(){
@@ -141,10 +200,14 @@ system("clear");
 printf("----- Help -----\n\n");
 printf(" >  novo {valor-timeout} {nome-ficheiro}  -- Comecar um jogo novo a partir de um ficheiro \n");
 printf(" >  novo {valor-timeout} {valor-dificuldade} -- Comecar o jogo com distribuição aleatória \n");
-;
+printf(" >  jogar -- Associa o jogador a um jogo já existente \n");
+printf(" >  sair -- Faz com que o utilizador saia do jogo. \n");
+printf(" >  terminar -- Faz com que o jogo termine para todos os utilizadores (Requer que o jogador esteje na sala inicial!)\n");
+printf(" ----------------\n\n");
 }
 int main(){
 /////////////Client.c UI - AQUI PARA TESTES APENAS //////////////
+// server.c --> int n_jogadores = 0; //incrementa ou decrementa consoante o nº de jogadores no jogo
 char str[MAX];
 char *palavra[8];
 int i=0, res, estado;
@@ -163,6 +226,13 @@ do{
 }while(palavra[i] != NULL);
 
 	res = avalia_frase(palavra, i);
+	i=0;
+	if(res == 7){
+	    //enviar o pid ao cliente.c
+	    // server.c --> sign4(14, start_timer);
+        system("kill -10  /*pid*/ ");
+        // server.c --> alarm(1);
+	}
 	if(res == 1){
 	printf("[ERRO]: Comando nao reconhecido!\n");
 	}
@@ -175,3 +245,6 @@ do{
 
 return 1;
 }
+
+
+
