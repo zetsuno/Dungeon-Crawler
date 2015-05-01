@@ -12,10 +12,11 @@
 #include <unistd.h>
 #include <math.h>
 #define MAX 100
-#define MAX_JOGADORES 10
+#define MAX_JOGADORES 100
 
 int NSEGUNDOS = 0;
 int njogadores = 0;
+int game_running_flag;
 
 typedef struct dados_players
 {
@@ -26,6 +27,7 @@ typedef struct dados_players
     int def;
     char inventory[20][20];
     int id_sala; //id da sala onde se encontra
+    int flag_ingame  // se o jogador está ingame ou não
     int coin_count; //contador de moedas
 }jogador;
 
@@ -126,6 +128,18 @@ int avalia_frase(char **palavra, int aux)
     FILE *f;
 
     if(strcmp(palavra[i],"novo") == 0){
+        for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        if(lista_jogadores[i].id != 1){
+            printf("[ERRO]: Só o jogador mestre (ID = 1) pode começar jogos!\n");
+            return;
+        }
+        else{
+            if(game_running_flag == 1){
+                printf("[ERRO]: Já existe um jogo em execução! \n")
+            }
         i++;
         if(i == aux){
             return -1;
@@ -148,20 +162,20 @@ int avalia_frase(char **palavra, int aux)
 
             }
         }
-
+        }
     }
     if(strcmp(palavra[i], "jogar") == 0){
         if(NSEGUNDOS < 0){
-            printf("O tempo de se juntar ao jogo excedeu o limite! \n");
+            printf("[ERRO]: O tempo de se juntar ao jogo excedeu o limite! \n");
             return;
             }
         if(n_jogadores >= MAX_JOGADORES){
-            printf("O jogo já está na sua capacidade máxima de jogadores! \n");
+            printf("[ERRO]: O jogo já está na sua capacidade máxima de jogadores! \n");
             }
             else{
                 system("kill -10 /* pids dos outros jogadores */");
-                printf("Um jogo acabou de ser lançado!\n");
-                initialize_game();
+                printf("[INFO]: Um jogo acabou de ser lançado!\n");
+                join_game();
                 system("clear");
                 game();
             }
@@ -172,10 +186,9 @@ int avalia_frase(char **palavra, int aux)
             if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
-        if(lista_jogadores[i].id == 1){
-            getmasterplayer();  //eleger outro jogador mestre
-        }
+
         system("kill -11 /* pid filhos */");   // avisa os filhos que o jogador x saiu do jogo
+        //operações de retirar o jogador do labirinto
     }
     if(strcmp(palavra[i],"terminar") == 0){
         for(i=0;i<njogadores;i++){
@@ -189,8 +202,29 @@ int avalia_frase(char **palavra, int aux)
         return;
         }
         else{
-            printf("Você não é o jogador mestre! Não tem permissão para acabar com o jogo!\n");
+            printf("[ERRO]: Você não é o jogador mestre! Não tem permissão para acabar com o jogo!\n");
         }
+    }
+    if(strcmp(palavra[i],"desistir") == 0){
+        for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+                break;
+        }
+        if(lista_jogadores[i].flag_ingame == 0){
+        printf("[ERRO]: O jogador não se encontra em jogo. \n");
+        }
+        if(lista_jogadores[i].id == 1){
+            getmasterplayer();  //eleger outro jogador mestre
+        }
+        //desistir: remover jogador da lista, droppar os items
+        njogadores--:
+        if(njogadores == 0){
+            showgameresult();
+            end_game();
+        }
+
+
+
     }
     return 7;
 }
@@ -201,8 +235,10 @@ printf("----- Help -----\n\n");
 printf(" >  novo {valor-timeout} {nome-ficheiro}  -- Comecar um jogo novo a partir de um ficheiro \n");
 printf(" >  novo {valor-timeout} {valor-dificuldade} -- Comecar o jogo com distribuição aleatória \n");
 printf(" >  jogar -- Associa o jogador a um jogo já existente \n");
-printf(" >  sair -- Faz com que o utilizador saia do jogo. \n");
+printf(" >  sair -- Faz com que o utilizador saia do labirinto. \n");
 printf(" >  terminar -- Faz com que o jogo termine para todos os utilizadores (Requer que o jogador esteje na sala inicial!)\n");
+printf(" >  desistir -- Faz com que o jogador saia do jogo, embora não encerre o cliente.\n");
+printf(" >  logout -- Faz com que o jogador saia do cliente, assumindo que não está a participar em algum jogo.\n");
 printf(" ----------------\n\n");
 }
 int main(){
@@ -228,10 +264,20 @@ do{
 	res = avalia_frase(palavra, i);
 	i=0;
 	if(res == 7){
-	    //enviar o pid ao cliente.c
-	    // server.c --> sign4(14, start_timer);
-        system("kill -10  /*pid*/ ");
-        // server.c --> alarm(1);
+
+	    if(game_running_flag == 0){
+            initialize_game();
+            //enviar o pid ao cliente.c
+            // server.c --> sign4(14, start_timer);
+            // server.c --> alarm(1);
+            system("kill -10  /*pid*/ ");
+            game_running_flag = 1;
+	    }
+	    else{
+            printf("[ERRO]: O jogo já está em execução! Junte-se a ele com o comando 'jogar'!\n");
+	    }
+
+
 	}
 	if(res == 1){
 	printf("[ERRO]: Comando nao reconhecido!\n");
