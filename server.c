@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <math.h>
 #define MAX 100
-#define MAX_JOGADORES 10
+#define MAX_JOGADORES 100
 
 int NSEGUNDOS = 0;
 int njogadores = 0;
@@ -27,7 +27,7 @@ typedef struct dados_players
     int def;
     char inventory[20][20];
     int id_sala; //id da sala onde se encontra
-    int flag_ingame;  // se o jogador está ingame ou não
+    int flag_ingame  // se o jogador está ingame ou não
     int coin_count; //contador de moedas
 }jogador;
 
@@ -117,7 +117,7 @@ int random_number(int min_num, int max_num)   //genera valor aleatorio entre min
 
 void start_timer(int s){
 	NSEGUNDOS++;
-	// alarm(1);
+	alarm(1);
 }
 
 
@@ -128,17 +128,17 @@ int avalia_frase(char **palavra, int aux)
     FILE *f;
 
     if(strcmp(palavra[i],"novo") == 0){
-  /*      for(i=0;i<njogadores;i++){
+        for(i=0;i<njogadores;i++){
             if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
-        } */
+        }
         if(lista_jogadores[i].id != 1){
             printf("[ERRO]: Só o jogador mestre (ID = 1) pode começar jogos!\n");
             return;
         }
         else{
             if(game_running_flag == 1){
-                printf("[ERRO]: Já existe um jogo em execução! \n");
+                printf("[ERRO]: Já existe um jogo em execução! \n")
             }
         i++;
         if(i == aux){
@@ -160,8 +160,8 @@ int avalia_frase(char **palavra, int aux)
             printf("[ERRO]: Erro ao abrir o ficheiro '%s'\n", str_aux);
             return;
 
-                }
             }
+        }
         }
     }
     if(strcmp(palavra[i], "jogar") == 0){
@@ -169,36 +169,36 @@ int avalia_frase(char **palavra, int aux)
             printf("[ERRO]: O tempo de se juntar ao jogo excedeu o limite! \n");
             return;
             }
- /*       if(n_jogadores >= MAX_JOGADORES){
+        if(n_jogadores >= MAX_JOGADORES){
             printf("[ERRO]: O jogo já está na sua capacidade máxima de jogadores! \n");
-            } */
+            }
             else{
-                // system("kill -10 /* pids dos outros jogadores */");
-                printf("[INFO]: Um jogo acabou de ser lançado!\n");
-                // join_game();
+                system("kill -10 /* pids dos outros jogadores */");
+                printf("Um jogo acabou de ser lançado!\n");
+                join_game();
                 system("clear");
-               //  game();
+                game();
             }
     }
     if(strcmp(palavra[i], "sair") == 0 && lista_jogadores[i].id_sala == 1){
-       //  sair();
-      /* for(i=0;i<njogadores;i++){
+        sair();
+        for(i=0;i<njogadores;i++){
             if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
-        }  */
+        }
 
-         // system("kill -11 /* pid filhos */");   // avisa os filhos que o jogador x saiu do jogo
+        system("kill -11 /* pid filhos */");   // avisa os filhos que o jogador x saiu do jogo
         //operações de retirar o jogador do labirinto
     }
     if(strcmp(palavra[i],"terminar") == 0){
-       /* for(i=0;i<njogadores;i++){
+        for(i=0;i<njogadores;i++){
             if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
-        } */
+        }
         if(lista_jogadores[i].id == 1){
 
         system("kill -11 /*pid filhos*/");  //avisa os filhos que o jogo acabou
-       // showgameresult();     //mostra o resultado do jogo: moedas dos users, e quem tem mais, ou seja, quem ganhou.
+        showgameresult();     //mostra o resultado do jogo: moedas dos users, e quem tem mais, ou seja, quem ganhou.
         return;
         }
         else{
@@ -206,21 +206,21 @@ int avalia_frase(char **palavra, int aux)
         }
     }
     if(strcmp(palavra[i],"desistir") == 0){
-    /*    for(i=0;i<njogadores;i++){
+        for(i=0;i<njogadores;i++){
             if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
                 break;
-        } */
+        }
         if(lista_jogadores[i].flag_ingame == 0){
         printf("[ERRO]: O jogador não se encontra em jogo. \n");
         }
         if(lista_jogadores[i].id == 1){
-           // getmasterplayer();  //eleger outro jogador mestre
+            getmasterplayer();  //eleger outro jogador mestre
         }
         //desistir: remover jogador da lista, droppar os items
-        njogadores--;
+        njogadores--:
         if(njogadores == 0){
-           // showgameresult();
-           // end_game();
+            showgameresult();
+            end_game();
         }
 
 
@@ -229,16 +229,118 @@ int avalia_frase(char **palavra, int aux)
     return 7;
 }
 
+void initialize_game(){
+    int i, j, id_aux1, id_aux2, aux_rand;
+	//Inicialização do labirinto
+    for(i=0;i<10;i++){
+        for(j=0;j<10;j++){
+            //Exepções de cantos
+            if(i ==0 && j == 0){
+                labirinto[i][j].p_norte = 0;
+                labirinto[i][j].p_oeste = 0;
+                aux_rand = random_number(0, 1);
+                p_este = aux_rand;
+                aux_rand = random_number(0, 1);
+                p_sul = aux_rand;
+            }
+            else if(i == 0 && j == 9){
+                labirinto[i][j].p_este = 0;
+                labirinto[i][j].p_norte = 0;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_oeste = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_sul = aux_rand;
+            }
+            else if(i == 9 && j == 0){
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_norte = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_este = aux_rand;
+                labirinto[i][j].p_sul = 0;
+                labirinto[i][j].p_oeste = 0;
+            }
+            else if(i == 9 && j == 9){
+                labirinto[i][j].p_sul = 0;
+                labirinto[i][j].p_este = 0;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_norte = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_oeste = aux_rand;
+            }
+            //Exepções de linhas
+            else if(i == 0){
+                labirinto[i][j].p_norte = 0;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_sul = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_este = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_oeste = aux_rand;
+            }
+            else if(i == 9){
+                labirinto[i][j].p_sul = 0;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_norte = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_este = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_oeste = aux_rand;
+            }
+            else if(j == 0){
+                labirinto[i][j].p_oeste = 0;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_sul = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_este = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_norte = aux_rand;
+            }
+            else if(j == 9){
+                labirinto[i][j].p_este = 0;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_sul = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_norte = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_oeste = aux_rand;
+            }
+            //Outros no geral
+            else{
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_norte = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_sul = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_este = aux_rand;
+                aux_rand = random_number(0, 1);
+                labirinto[i][j].p_oeste = aux_rand;
+
+            }
+
+        }
+    }
+    //calcular a sala inical
+    id_aux1 = random_number(0, 9);
+    id_aux2 = random_number(0, 9);
+
+    for(i=0;i<9;i++){
+        for(j=0;j<9;j++){
+            if(i == id_aux1 && j == id_aux2){
+            labirinto[i][j].id = 1;
+            }
+
+        }
+    }
+
+}
 void help(){
 system("clear");
 printf("----- Help -----\n\n");
 printf(" >  novo {valor-timeout} {nome-ficheiro}  -- Comecar um jogo novo a partir de um ficheiro \n");
 printf(" >  novo {valor-timeout} {valor-dificuldade} -- Comecar o jogo com distribuição aleatória \n");
 printf(" >  jogar -- Associa o jogador a um jogo já existente \n");
-printf(" >  sair -- Faz com que o utilizador saia do labirinto. \n");
+printf(" >  sair -- Faz com que o utilizador saia do jogo. \n");
 printf(" >  terminar -- Faz com que o jogo termine para todos os utilizadores (Requer que o jogador esteje na sala inicial!)\n");
-printf(" >  desistir -- Faz com que o jogador saia do jogo, embora não encerre o cliente.\n");
-printf(" >  logout -- Faz com que o jogador saia do cliente, assumindo que não está a participar em algum jogo.\n");
 printf(" ----------------\n\n");
 }
 int main(){
@@ -266,7 +368,7 @@ do{
 	if(res == 7){
 
 	    if(game_running_flag == 0){
-            // initialize_game();
+            initialize_game();
             //enviar o pid ao cliente.c
             // server.c --> sign4(14, start_timer);
             // server.c --> alarm(1);
@@ -274,7 +376,7 @@ do{
             game_running_flag = 1;
 	    }
 	    else{
-            printf("[ERRO]: O jogo já está em execução! Junte-se a ele com o comando 'jogar'!\n");
+            printf("O jogo já está em execução! Junte-se a ele com o comando 'jogar'!\n");
 	    }
 
 
