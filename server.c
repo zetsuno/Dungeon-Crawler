@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <math.h>
 #define MAX 100
-#define MAX_JOGADORES 100
+#define MAX_JOGADORES 10
 
 int NSEGUNDOS = 0;
 int njogadores = 0;
