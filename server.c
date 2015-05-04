@@ -6,6 +6,8 @@
 #include <time.h>   // dá jeito pro rand()
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <string.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -19,15 +21,15 @@ int njogadores = 0;
 int game_running_flag;
 
 typedef struct dados_players
-{
+{   char nome[25];
     int id;     //jogador mestre tem ID = 1
     int saude; //start = 20, Max = 30
-    int peso; // Max = 20
+    float peso; // Max = 20
     int atk;
     int def;
-    char inventory[20][20];
+    char *inventory[20];
     int id_sala; //id da sala onde se encontra
-    int flag_ingame  // se o jogador está ingame ou não
+    int flag_ingame;  // se o jogador está ingame ou não
     int coin_count; //contador de moedas
 }jogador;
 
@@ -67,10 +69,10 @@ typedef struct dados_room
     int p_sul;
     int p_este;
     int p_oeste;
-    char nmonstros[25][25];     // min 0, max 2
-    char items[25][25];
+    monstros monstros_room[2];     // min 0, max 2
+    items items_room[5];
     char descricao[80];
-    char njogadores[25][25];
+    jogador jogadores_room[10];
 
 }sala;
 
@@ -97,7 +99,7 @@ items tabela_items[8] =
  [7] = {"moeda", 0.1, 5, 0, 0, -99, -99, -99}
 };
 
-jogador lista_jogadores[10];
+jogador lista_jogadores[10]={"NULL"};
 
 int random_number(int min_num, int max_num)   //genera valor aleatorio entre min_num e max_num
 {
@@ -121,7 +123,7 @@ void start_timer(int s){
 }
 
 
-int avalia_frase(char **palavra, int aux)
+int avalia_frase(char **palavra, int aux) //char *ign
 {
     int i = 0, timeout_aux;
     char *str_aux;
@@ -129,7 +131,7 @@ int avalia_frase(char **palavra, int aux)
 
     if(strcmp(palavra[i],"novo") == 0){
         for(i=0;i<njogadores;i++){
-            if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
         if(lista_jogadores[i].id != 1){
@@ -138,7 +140,7 @@ int avalia_frase(char **palavra, int aux)
         }
         else{
             if(game_running_flag == 1){
-                printf("[ERRO]: Já existe um jogo em execução! \n")
+                printf("[ERRO]: Já existe um jogo em execução! \n");
             }
         i++;
         if(i == aux){
@@ -169,7 +171,7 @@ int avalia_frase(char **palavra, int aux)
             printf("[ERRO]: O tempo de se juntar ao jogo excedeu o limite! \n");
             return;
             }
-        if(n_jogadores >= MAX_JOGADORES){
+        if(njogadores >= MAX_JOGADORES){
             printf("[ERRO]: O jogo já está na sua capacidade máxima de jogadores! \n");
             }
             else{
@@ -183,7 +185,7 @@ int avalia_frase(char **palavra, int aux)
     if(strcmp(palavra[i], "sair") == 0 && lista_jogadores[i].id_sala == 1){
         sair();
         for(i=0;i<njogadores;i++){
-            if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
 
@@ -192,7 +194,7 @@ int avalia_frase(char **palavra, int aux)
     }
     if(strcmp(palavra[i],"terminar") == 0){
         for(i=0;i<njogadores;i++){
-            if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
         if(lista_jogadores[i].id == 1){
@@ -207,7 +209,7 @@ int avalia_frase(char **palavra, int aux)
     }
     if(strcmp(palavra[i],"desistir") == 0){
         for(i=0;i<njogadores;i++){
-            if(strcmp(ign, lista_jogadores[i]) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
                 break;
         }
         if(lista_jogadores[i].flag_ingame == 0){
@@ -217,7 +219,7 @@ int avalia_frase(char **palavra, int aux)
             getmasterplayer();  //eleger outro jogador mestre
         }
         //desistir: remover jogador da lista, droppar os items
-        njogadores--:
+        njogadores--;
         if(njogadores == 0){
             showgameresult();
             end_game();
@@ -230,8 +232,8 @@ int avalia_frase(char **palavra, int aux)
 }
 
 void initialize_game(){
-    int i, j, id_aux1, id_aux2, aux_rand;
-	//Inicialização do labirinto
+    int i, j, k, id_aux1, id_aux2, aux_rand, aux_rand2, aux_rand3, aux_rarity;
+    //Inicializaçao do labirinto
     for(i=0;i<10;i++){
         for(j=0;j<10;j++){
             //Exepções de cantos
@@ -239,9 +241,9 @@ void initialize_game(){
                 labirinto[i][j].p_norte = 0;
                 labirinto[i][j].p_oeste = 0;
                 aux_rand = random_number(0, 1);
-                p_este = aux_rand;
+                labirinto[i][j].p_este = aux_rand;
                 aux_rand = random_number(0, 1);
-                p_sul = aux_rand;
+                labirinto[i][j].p_sul = aux_rand;
             }
             else if(i == 0 && j == 9){
                 labirinto[i][j].p_este = 0;
@@ -330,6 +332,41 @@ void initialize_game(){
             }
 
         }
+    }
+
+    //colocação aleatória de items
+
+    for(i=0;i<9;i++){
+        for(j=0;j<9;j++){
+            aux_rand = random_number(0, 5);
+            for(k=0;k<aux_rand;k++){
+                aux_rand2 = random_number(0, 7);
+                aux_rarity = tabela_items[aux_rand2].raridade;
+                aux_rand3 = random_number(0, 100);
+                if(aux_rand3 < aux_rarity){
+                    labirinto[i][j].items_room[aux_rand] = tabela_items[aux_rand2];
+                }
+            }
+        }
+    }
+
+    //Inicialização do inventário e stats do utilizador
+    id_aux1 = 1;
+    for(i=0;i<njogadores;i++){
+        if(strcmp(lista_jogadores[i].nome, "NULL") != 0){
+            lista_jogadores[i].inventory[0] = "faca";
+            lista_jogadores[i].inventory[1] = "aspirina";
+            lista_jogadores[i].peso = 2.1;
+            lista_jogadores[i].id = id_aux1;
+            id_aux1++;
+            lista_jogadores[i].saude = 20;
+            lista_jogadores[i].atk = 1;
+            lista_jogadores[i].def = 1;
+            lista_jogadores[i].id_sala = 1;
+            lista_jogadores[i].flag_ingame = 1;
+            lista_jogadores[i].coin_count = 0;
+        }
+
     }
 
 }
