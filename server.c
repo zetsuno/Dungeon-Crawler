@@ -15,7 +15,7 @@
 #include <math.h>
 #define DIM_LAB 10
 #define MAX 100
-#define MAX_JOGADORES 100
+#define MAX_JOGADORES 10
 
 int NSEGUNDOS = 0;
 int njogadores = 0;
