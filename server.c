@@ -13,8 +13,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <math.h>
+#define DIM_LAB 10
 #define MAX 100
-#define MAX_JOGADORES 10
+#define MAX_JOGADORES 100
 
 int NSEGUNDOS = 0;
 int njogadores = 0;
@@ -23,11 +24,13 @@ int game_running_flag;
 typedef struct dados_players
 {   char nome[25];
     int id;     //jogador mestre tem ID = 1
+    int pos_x; //abcissa da posição do jogador na matriz
+    int pos_y;  //ordenada da posição do jogador na matriz
     int saude; //start = 20, Max = 30
     float peso; // Max = 20
     int atk;
     int def;
-    char *inventory[20];
+    char *inventory[10];
     int id_sala; //id da sala onde se encontra
     int flag_ingame;  // se o jogador está ingame ou não
     int coin_count; //contador de moedas
@@ -76,7 +79,7 @@ typedef struct dados_room
 
 }sala;
 
-sala labirinto[10][10];
+sala labirinto[DIM_LAB][DIM_LAB];
 
 monstros tabela_monstros[5] =
 {
@@ -125,7 +128,7 @@ void start_timer(int s){
 
 int avalia_frase(char **palavra, int aux) //char *ign
 {
-    int i = 0, timeout_aux;
+    int i = 0,j, timeout_aux;
     char *str_aux;
     FILE *f;
 
@@ -135,12 +138,12 @@ int avalia_frase(char **palavra, int aux) //char *ign
             break;
         }
         if(lista_jogadores[i].id != 1){
-            printf("[ERRO]: Só o jogador mestre (ID = 1) pode começar jogos!\n");
+            printf("\n[ERRO]: Só o jogador mestre (ID = 1) pode começar jogos!\n");
             return;
         }
         else{
             if(game_running_flag == 1){
-                printf("[ERRO]: Já existe um jogo em execução! \n");
+                printf("\n[ERRO]: Já existe um jogo em execução! \n");
             }
         i++;
         if(i == aux){
@@ -148,7 +151,7 @@ int avalia_frase(char **palavra, int aux) //char *ign
         }
         timeout_aux = atoi(palavra[i]);
         if(timeout_aux<0){
-            printf("[ERRO]: Timeout Invalido!\n");
+            printf("\n[ERRO]: Timeout Invalido!\n");
             return -1;
         }
         i++;
@@ -159,7 +162,7 @@ int avalia_frase(char **palavra, int aux) //char *ign
         str_aux = palavra[i];
         f=fopen(str_aux, "rt");
         if(f == NULL){
-            printf("[ERRO]: Erro ao abrir o ficheiro '%s'\n", str_aux);
+            printf("\n[ERRO]: Erro ao abrir o ficheiro '%s'\n", str_aux);
             return;
 
             }
@@ -168,15 +171,15 @@ int avalia_frase(char **palavra, int aux) //char *ign
     }
     if(strcmp(palavra[i], "jogar") == 0){
         if(NSEGUNDOS < 0){
-            printf("[ERRO]: O tempo de se juntar ao jogo excedeu o limite! \n");
+            printf("\n[ERRO]: O tempo de se juntar ao jogo excedeu o limite!\n");
             return;
             }
         if(njogadores >= MAX_JOGADORES){
-            printf("[ERRO]: O jogo já está na sua capacidade máxima de jogadores! \n");
+            printf("\n[ERRO]: O jogo já está na sua capacidade máxima de jogadores!\n");
             }
             else{
                 system("kill -10 /* pids dos outros jogadores */");
-                printf("Um jogo acabou de ser lançado!\n");
+                printf("\nUm jogo acabou de ser lançado!\n");
                 join_game();
                 system("clear");
                 game();
@@ -204,7 +207,7 @@ int avalia_frase(char **palavra, int aux) //char *ign
         return;
         }
         else{
-            printf("[ERRO]: Você não é o jogador mestre! Não tem permissão para acabar com o jogo!\n");
+            printf("\n[ERRO]: Você não é o jogador mestre! Não tem permissão para acabar com o jogo!\n");
         }
     }
     if(strcmp(palavra[i],"desistir") == 0){
@@ -213,7 +216,7 @@ int avalia_frase(char **palavra, int aux) //char *ign
                 break;
         }
         if(lista_jogadores[i].flag_ingame == 0){
-        printf("[ERRO]: O jogador não se encontra em jogo. \n");
+        printf("\n[ERRO]: O jogador não se encontra em jogo. \n");
         }
         if(lista_jogadores[i].id == 1){
             getmasterplayer();  //eleger outro jogador mestre
@@ -228,14 +231,64 @@ int avalia_frase(char **palavra, int aux) //char *ign
 
 
     }
+    if(strcmp(palavra[i],"logout") == 0){
+        for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        if(lista_jogadores[i].flag_ingame == 1){
+            printf("\n[ERRO]: Ainda está em jogo! Use 'sair' para sair do jogo e depois execute este comando!\n");
+            return -1;
+        }
+        else{
+            system("kill -8 /*pid do filho a matar*/");
+        }
+    }
+    if(strcmp(palavra[i],"info") == 0){
+        for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        if(lista_jogadores[i].saude > 15){
+            printf("Feelin' good!\n");
+        }
+        if(lista_jogadores[i].saude > 10 && lista_jogadores[i].saude < 15){
+            printf("A few cuts n' bruises...\n");
+        }
+        if(lista_jogadores[i].saude < 10){
+            printf("Need something to cure the pain... and fast...\n");
+        }
+        if(lista_jogadores[i].peso > 15){
+            printf("I feel heavy...\n");
+        }
+        if(lista_jogadores[i].peso > 10 && lista_jogadores[i].peso < 15){
+            printf("I'm okay weight-wise.\n");
+        }
+        if(lista_jogadores[i].peso < 10){
+            printf("Light as a feather!\n");
+        }
+        printf("\nTenho %d moedas!", lista_jogadores[i].coin_count);
+        printf("\nNo meu inventário tenho:\t");
+        for(j=0;j<10;j++){
+            printf("%s\t", lista_jogadores[i].inventory[j]);
+            j++;
+            printf("%s\t", lista_jogadores[i].inventory[j]);
+            j++;
+            printf("%s\n", lista_jogadores[i].inventory[j]);
+
+        }
+
+    }
     return 7;
+
 }
 
 void initialize_game(){
-    int i, j, k, id_aux1, id_aux2, aux_rand, aux_rand2, aux_rand3, aux_rarity;
+    int i, j, k, id_aux1, id_aux2, id_aux3, aux_rand, aux_rand2, aux_rand3, aux_rarity, bat_count = 0, scorp_count = 0, werewolf_count = 0, bear_count = 0, boss_count = 0;
+
     //Inicializaçao do labirinto
-    for(i=0;i<10;i++){
-        for(j=0;j<10;j++){
+    for(i=0;i<DIM_LAB;i++){
+        for(j=0;j<DIM_LAB;j++){
             //Exepções de cantos
             if(i ==0 && j == 0){
                 labirinto[i][j].p_norte = 0;
@@ -325,8 +378,8 @@ void initialize_game(){
     id_aux1 = random_number(0, 9);
     id_aux2 = random_number(0, 9);
 
-    for(i=0;i<9;i++){
-        for(j=0;j<9;j++){
+    for(i=0;i<DIM_LAB;i++){
+        for(j=0;j<DIM_LAB;j++){
             if(i == id_aux1 && j == id_aux2){
             labirinto[i][j].id = 1;
             }
@@ -336,8 +389,8 @@ void initialize_game(){
 
     //colocação aleatória de items
 
-    for(i=0;i<9;i++){
-        for(j=0;j<9;j++){
+    for(i=0;i<DIM_LAB;i++){
+        for(j=0;j<DIM_LAB;j++){
             aux_rand = random_number(0, 5);
             for(k=0;k<aux_rand;k++){
                 aux_rand2 = random_number(0, 7);
@@ -351,24 +404,65 @@ void initialize_game(){
     }
 
     //Inicialização do inventário e stats do utilizador
-    id_aux1 = 1;
+    id_aux3 = 1;
     for(i=0;i<njogadores;i++){
         if(strcmp(lista_jogadores[i].nome, "NULL") != 0){
             lista_jogadores[i].inventory[0] = "faca";
             lista_jogadores[i].inventory[1] = "aspirina";
             lista_jogadores[i].peso = 2.1;
-            lista_jogadores[i].id = id_aux1;
-            id_aux1++;
+            lista_jogadores[i].id = id_aux3;
             lista_jogadores[i].saude = 20;
-            lista_jogadores[i].atk = 1;
-            lista_jogadores[i].def = 1;
+            lista_jogadores[i].atk = 5;
+            lista_jogadores[i].def = 0;
             lista_jogadores[i].id_sala = 1;
             lista_jogadores[i].flag_ingame = 1;
             lista_jogadores[i].coin_count = 0;
+            lista_jogadores[i].pos_x = id_aux1;
+            lista_jogadores[i].pos_y = id_aux2;
+            id_aux1++;
         }
 
     }
+        //inicializaão dos monstros no labirinto, consoante os pre-requisitos numéricos
 
+    for(i=0;i<DIM_LAB;i++){
+        for(j=0;j<DIM_LAB;j++){
+            aux_rand = random_number(0,2);
+            for(k=0;k<aux_rand;k++){
+                aux_rand2 = random_number(0, 4);
+                if(bat_count == tabela_monstros[0].num_inicial && scorp_count == tabela_monstros[1].num_inicial && werewolf_count == tabela_monstros[2].num_inicial && bear_count == tabela_monstros[3].num_inicial && boss_count == tabela_monstros[4].num_inicial)
+                    goto end_monsters;              //Salta lá pra bauxo
+                while(aux_rand2 == 0  && bat_count == tabela_monstros[aux_rand2].num_inicial){
+                    aux_rand2 = random_number(0,4);
+                }
+                while(aux_rand2 == 1 && scorp_count == tabela_monstros[aux_rand2].num_inicial){
+                    aux_rand2 = random_number(0,4);
+                }
+                while(aux_rand2 == 2 && werewolf_count == tabela_monstros[aux_rand2].num_inicial){
+                    aux_rand2 = random_number(0,4);
+                }
+                while(aux_rand2 == 3 && bear_count == tabela_monstros[aux_rand2].num_inicial){
+                    aux_rand2 = random_number(0,4);
+                }
+                while(aux_rand2 == 4 && boss_count == tabela_monstros[aux_rand2].num_inicial){
+                    aux_rand2 = random_number(0,4);
+                }
+                if(aux_rand2 == 0)
+                    bat_count++;
+                if(aux_rand2 == 1)
+                    scorp_count++;
+                if(aux_rand2 == 2)
+                    werewolf_count++;
+                if(aux_rand2 == 3)
+                    bear_count++;
+                if(aux_rand2 == 4)
+                    boss_count++;
+                labirinto[i][j].monstros_room[k] = tabela_monstros[aux_rand2];
+
+            }
+        }
+    }
+    end_monsters: /*inserir o que falta aqui*/;   //Goto = JMP em assembly
 }
 void help(){
 system("clear");
@@ -378,11 +472,13 @@ printf(" >  novo {valor-timeout} {valor-dificuldade} -- Comecar o jogo com distr
 printf(" >  jogar -- Associa o jogador a um jogo já existente \n");
 printf(" >  sair -- Faz com que o utilizador saia do jogo. \n");
 printf(" >  terminar -- Faz com que o jogo termine para todos os utilizadores (Requer que o jogador esteje na sala inicial!)\n");
+printf(" >  logout -- Termina a aplicação 'cliente' para o utilizador apenas, assumindo que não se encontra em jogo!\n");
+printf(" >  info -- Uma pequena descrição do estado do utilizador.\n");
 printf(" ----------------\n\n");
 }
 int main(){
 /////////////Client.c UI - AQUI PARA TESTES APENAS //////////////
-// server.c --> int n_jogadores = 0; //incrementa ou decrementa consoante o nº de jogadores no jogo
+// server.c --> int njogadores = 0; //incrementa ou decrementa consoante o nº de jogadores no jogo
 char str[MAX];
 char *palavra[8];
 int i=0, res, estado;
