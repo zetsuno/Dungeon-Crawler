@@ -118,7 +118,7 @@ void clear_struct(int j, int k, int n){
 
     int i;
 
-    labirinto[j][k].jogadores_room[n].nome[0] = "\0";
+    labirinto[j][k].jogadores_room[n].nome[0] = '\0';
     labirinto[j][k].jogadores_room[n].id = 0;
 
     for(i=0; i<10; i++){
