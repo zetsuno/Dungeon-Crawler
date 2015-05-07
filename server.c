@@ -26,11 +26,12 @@ typedef struct dados_players
     int id;     //jogador mestre tem ID = 1
     int pos_x; //abcissa da posição do jogador na matriz
     int pos_y;  //ordenada da posição do jogador na matriz
-    int saude; //start = 20, Max = 30
+    float saude; //start = 20, Max = 30
     float peso; // Max = 20
     int atk;
     int def;
     char *inventory[10];
+    int pid; //pid
     int id_sala; //id da sala onde se encontra
     int flag_ingame;  // se o jogador está ingame ou não
     int coin_count; //contador de moedas
@@ -52,12 +53,15 @@ typedef struct dados_items
 typedef struct dados_monstros
 {
     char nome[10];
+    int forca_atk;
     int forca_atk_min;
     int forca_atk_max;
+    int forca_def;
     int forca_def_min;
     int forca_def_max;
-    int saude_min;
-    int saude_max;
+    float saude;
+    float saude_min;
+    float saude_max;
     int num_inicial;
     int agressividade;      //Em vez de andarmos sempre co strcmp, fazemos 1 = agressivo, 0 = passivo
     int movimento;         // Mesmo que em cima, 1 = Movimenta-se, 0 = fica quieto;
@@ -72,7 +76,7 @@ typedef struct dados_room
     int p_sul;
     int p_este;
     int p_oeste;
-    monstros monstros_room[2];     // min 0, max 2
+    monstros monstros_room[3];     // min 0, max 2
     items items_room[5];
     char descricao[80];
     jogador jogadores_room[10];
@@ -83,11 +87,11 @@ sala labirinto[DIM_LAB][DIM_LAB];
 
 monstros tabela_monstros[5] =
 {
- [0] = {"morcego", 1, 4, 3, 4, 4, 5, 10, 1, 1,"NULL" },
- [1] = {"escorpiao", 1, 7, 5, 7, 7, 9, 10, 1, 0, "moeda"},
- [2] = {"lobisomem", 5, 7, 5, 7, 7, 9, 4, 1, 1, "faca"},
- [3] = {"pedobear", 8, 10, 10, 12, 10, 10, 2, 0, 0, "faca moeda"},  //quando é mais que 1 item, podemos usar o strtok pra dividir isto bem, e mais facilmente
- [4] = {"b0ss", 10, 12, 15, 15, 15, 15, 1, 0, 0, "moeda moeda moeda moeda moeda"}
+ [0] = {"morcego", 0, 1, 4, 0, 3, 4, 0, 4, 5, 10, 1, 1,"NULL" },
+ [1] = {"escorpiao", 0, 1, 7, 0, 5, 7, 0, 7, 9, 10, 1, 0, "moeda"},
+ [2] = {"lobisomem", 0, 5, 7, 0, 5, 7, 0, 7, 9, 4, 1, 1, "faca"},
+ [3] = {"pedobear", 0, 8, 10, 0, 10, 12, 0,  10, 10, 2, 0, 0, "faca moeda"},  //quando é mais que 1 item, podemos usar o strtok pra dividir isto bem, e mais facilmente
+ [4] = {"b0ss", 0, 10, 12, 0, 15, 15, 0, 15, 15, 1, 0, 0, "moeda moeda moeda moeda moeda"}
 };
 
 items tabela_items[8] =
@@ -104,6 +108,26 @@ items tabela_items[8] =
 
 jogador lista_jogadores[10]={"NULL"};
 
+float RandomFloat(float a, float b) {  //genera valor aleatorio float
+    float random = ((float) rand()) / (float) RAND_MAX;
+    float diff = b - a;
+    float r = random * diff;
+    return a + r;
+}
+void clear_struct(int j, int k, int n){
+
+    int i;
+
+    labirinto[j][k].jogadores_room[n].nome[0] = "\0";
+    labirinto[j][k].jogadores_room[n].id = 0;
+
+    for(i=0; i<10; i++){
+        labirinto[j][k].jogadores_room[n].inventory[i] = "";
+    }
+    labirinto[j][k].jogadores_room[n].pid = 0;
+    labirinto[j][k].jogadores_room[n].coin_count = 0;
+
+}
 int random_number(int min_num, int max_num)   //genera valor aleatorio entre min_num e max_num
 {
             int result=0,low_num=0,hi_num=0;
@@ -125,11 +149,23 @@ void start_timer(int s){
 	alarm(1);
 }
 
+float porrada(int atk_attacker, int def_defender){  //PUNHADA
 
+    int aux_rand, aux_rand2;
+    float dano;
+
+    aux_rand = RandomFloat(0, (float)atk_attacker);
+    aux_rand2 = RandomFloat(0.0,0.5);
+
+    dano = abs(aux_rand - (aux_rand2 * def_defender));
+
+    return dano;
+}
 int avalia_frase(char **palavra, int aux) //char *ign
 {
-    int i = 0,j, timeout_aux;
+    int i = 0,j, k, l, n , m,  timeout_aux, aux_pos_x, aux_pos_y;
     char *str_aux;
+    float dano;
     FILE *f;
 
     if(strcmp(palavra[i],"novo") == 0){
@@ -249,22 +285,22 @@ int avalia_frase(char **palavra, int aux) //char *ign
             if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
-        if(lista_jogadores[i].saude > 15){
+        if(lista_jogadores[i].saude > 15.0){
             printf("Feelin' good!\n");
         }
-        if(lista_jogadores[i].saude > 10 && lista_jogadores[i].saude < 15){
+        if(lista_jogadores[i].saude > 10.0 && lista_jogadores[i].saude < 15.0){
             printf("A few cuts n' bruises...\n");
         }
-        if(lista_jogadores[i].saude < 10){
+        if(lista_jogadores[i].saude < 10.0){
             printf("Need something to cure the pain... and fast...\n");
         }
-        if(lista_jogadores[i].peso > 15){
+        if(lista_jogadores[i].peso > 15.0){
             printf("I feel heavy...\n");
         }
-        if(lista_jogadores[i].peso > 10 && lista_jogadores[i].peso < 15){
+        if(lista_jogadores[i].peso > 10.0 && lista_jogadores[i].peso < 15.0){
             printf("I'm okay weight-wise.\n");
         }
-        if(lista_jogadores[i].peso < 10){
+        if(lista_jogadores[i].peso < 10.0){
             printf("Light as a feather!\n");
         }
         printf("\nTenho %d moedas!", lista_jogadores[i].coin_count);
@@ -279,12 +315,173 @@ int avalia_frase(char **palavra, int aux) //char *ign
         }
 
     }
+    if(strcmp(palavra[i],"norte") == 0){
+         for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[i].pos_x;
+        aux_pos_y=lista_jogadores[i].pos_y;
+
+        for(j=0;j<DIM_LAB;j++){   //percorrer o labirinto
+            for(k=0;k<DIM_LAB;k++){
+                if(j == aux_pos_y && k == aux_pos_x){ //encontrar a posicao do jogador
+                    for(l=0;l<3;l++){
+                        if(labirinto[j][k].monstros_room[l].agressividade  == 1){    //verificar se ha monstros agressivos na sala
+                            dano = porrada(labirinto[j][k].monstros_room[l].forca_atk, lista_jogadores[i].def);  //calcular o dano entre monstro/jogador
+                            lista_jogadores[i].saude -= dano;
+                            for(n=0;n<10;n++){
+                                if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
+                                    labirinto[j][k].jogadores_room[n].saude = lista_jogadores[i].saude;  //fazer as alteracoes da hp em lista_jogadores e em labirinto[i][j].jogadores_room[n]
+                                }
+                            }
+                            printf("[INFO]: Um monstro agressivo atacou-o antes que conseguisse sair da sala! Perdeu %.1f de vida e o seu movimento não foi aceite!", dano);
+                            return;
+                        }
+                    }
+                    if(labirinto[j][k].p_norte == 1){ // alterações de 'colocar' o jogador no novo sítio e 'apaga-lo' do antigo
+                    for(m=0;m<10;m++){
+                        if(strcmp(labirinto[j-1][k].jogadores_room[m].nome, "") == 0)
+                            break;
+                    }
+                    labirinto[j-1][k].jogadores_room[m] = labirinto[j][k].jogadores_room[n];
+                    clear_struct(j,k,n);
+                    }
+                    else{
+                        printf("[INFO]: Não existe uma porta aberta na direção especificada!\n");
+                        return;
+                    }
+                }
+            }
+        }
+    }
+     if(strcmp(palavra[i],"sul") == 0){
+         for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[i].pos_x;
+        aux_pos_y=lista_jogadores[i].pos_y;
+
+        for(j=0;j<DIM_LAB;j++){   //percorrer o labirinto
+            for(k=0;k<DIM_LAB;k++){
+                if(j == aux_pos_y && k == aux_pos_x){ //encontrar a posicao do jogador
+                    for(l=0;l<3;l++){
+                        if(labirinto[j][k].monstros_room[l].agressividade  == 1){    //verificar se ha monstros agressivos na sala
+                            dano = porrada(labirinto[j][k].monstros_room[l].forca_atk, lista_jogadores[i].def);  //calcular o dano entre monstro/jogador
+                            lista_jogadores[i].saude -= dano;
+                            for(n=0;n<10;n++){
+                                if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
+                                    labirinto[j][k].jogadores_room[n].saude = lista_jogadores[i].saude;  //fazer as alteracoes da hp em lista_jogadores e em labirinto[i][j].jogadores_room[n]
+                                }
+                            }
+                            printf("[INFO]: Um monstro agressivo atacou-o antes que conseguisse sair da sala! Perdeu %.1f de vida e o seu movimento não foi aceite!", dano);
+                            return;
+                        }
+                    }
+                    if(labirinto[j][k].p_sul == 1){ // alterações de 'colocar' o jogador no novo sítio e 'apaga-lo' do antigo
+                    for(m=0;m<10;m++){
+                        if(strcmp(labirinto[j+1][k].jogadores_room[m].nome, "") == 0)
+                            break;
+                    }
+                    labirinto[j+1][k].jogadores_room[m] = labirinto[j][k].jogadores_room[n];
+                    clear_struct(j,k,n);
+                    }
+                    else{
+                        printf("[INFO]: Não existe uma porta aberta na direção especificada!\n");
+                        return;
+                    }
+                }
+            }
+        }
+    }
+     if(strcmp(palavra[i],"este") == 0){
+         for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[i].pos_x;
+        aux_pos_y=lista_jogadores[i].pos_y;
+
+        for(j=0;j<DIM_LAB;j++){   //percorrer o labirinto
+            for(k=0;k<DIM_LAB;k++){
+                if(j == aux_pos_y && k == aux_pos_x){ //encontrar a posicao do jogador
+                    for(l=0;l<3;l++){
+                        if(labirinto[j][k].monstros_room[l].agressividade  == 1){    //verificar se ha monstros agressivos na sala
+                            dano = porrada(labirinto[j][k].monstros_room[l].forca_atk, lista_jogadores[i].def);  //calcular o dano entre monstro/jogador
+                            lista_jogadores[i].saude -= dano;
+                            for(n=0;n<10;n++){
+                                if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
+                                    labirinto[j][k].jogadores_room[n].saude = lista_jogadores[i].saude;  //fazer as alteracoes da hp em lista_jogadores e em labirinto[i][j].jogadores_room[n]
+                                }
+                            }
+                            printf("[INFO]: Um monstro agressivo atacou-o antes que conseguisse sair da sala! Perdeu %.1f de vida e o seu movimento não foi aceite!", dano);
+                            return;
+                        }
+                    }
+                    if(labirinto[j][k].p_este == 1){ // alterações de 'colocar' o jogador no novo sítio e 'apaga-lo' do antigo
+                    for(m=0;m<10;m++){
+                        if(strcmp(labirinto[j][k+1].jogadores_room[m].nome, "") == 0)
+                            break;
+                    }
+                    labirinto[j][k+1].jogadores_room[m] = labirinto[j][k].jogadores_room[n];
+                    clear_struct(j,k,n);
+                    }
+                    else{
+                        printf("[INFO]: Não existe uma porta aberta na direção especificada!\n");
+                        return;
+                    }
+                }
+            }
+        }
+    }
+     if(strcmp(palavra[i],"oeste") == 0){
+         for(i=0;i<njogadores;i++){
+            if(strcmp(ign, lista_jogadores[i].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[i].pos_x;
+        aux_pos_y=lista_jogadores[i].pos_y;
+
+        for(j=0;j<DIM_LAB;j++){   //percorrer o labirinto
+            for(k=0;k<DIM_LAB;k++){
+                if(j == aux_pos_y && k == aux_pos_x){ //encontrar a posicao do jogador
+                    for(l=0;l<3;l++){
+                        if(labirinto[j][k].monstros_room[l].agressividade  == 1){    //verificar se ha monstros agressivos na sala
+                            dano = porrada(labirinto[j][k].monstros_room[l].forca_atk, lista_jogadores[i].def);  //calcular o dano entre monstro/jogador
+                            lista_jogadores[i].saude -= dano;
+                            for(n=0;n<10;n++){
+                                if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
+                                    labirinto[j][k].jogadores_room[n].saude = lista_jogadores[i].saude;  //fazer as alteracoes da hp em lista_jogadores e em labirinto[i][j].jogadores_room[n]
+                                }
+                            }
+                            printf("[INFO]: Um monstro agressivo atacou-o antes que conseguisse sair da sala! Perdeu %.1f de vida e o seu movimento não foi aceite!", dano);
+                            return;
+                        }
+                    }
+                    if(labirinto[j][k].p_oeste == 1){  // alterações de 'colocar' o jogador no novo sítio e 'apaga-lo' do antigo
+                    for(m=0;m<10;m++){
+                        if(strcmp(labirinto[j][k-1].jogadores_room[m].nome, "") == 0)
+                            break;
+                    }
+                    labirinto[j][k-1].jogadores_room[m] = labirinto[j][k].jogadores_room[n];
+                    clear_struct(j,k,n);
+                    }
+                    else{
+                        printf("[INFO]: Não existe uma porta aberta na direção especificada!\n");
+                        return;
+                    }
+                }
+            }
+        }
+    }
     return 7;
 
 }
 
 void initialize_game(){
-    int i, j, k, id_aux1, id_aux2, id_aux3, aux_rand, aux_rand2, aux_rand3, aux_rarity, bat_count = 0, scorp_count = 0, werewolf_count = 0, bear_count = 0, boss_count = 0;
+    int i, j, k, id_aux1, id_aux2, id_aux3, aux_rand, aux_rand2, aux_rand3, aux_rarity,
+    bat_count = 0, scorp_count = 0, werewolf_count = 0, bear_count = 0, boss_count = 0;
 
     //Inicializaçao do labirinto
     for(i=0;i<DIM_LAB;i++){
@@ -457,7 +654,15 @@ void initialize_game(){
                     bear_count++;
                 if(aux_rand2 == 4)
                     boss_count++;
+
                 labirinto[i][j].monstros_room[k] = tabela_monstros[aux_rand2];
+                //inicializar stats aleatoriamente
+                labirinto[i][j].monstros_room[k].forca_atk = random_number(labirinto[i][j].monstros_room[k].forca_atk_min, labirinto[i][j].monstros_room[k].forca_atk_max);
+                labirinto[i][j].monstros_room[k].forca_def = random_number(labirinto[i][j].monstros_room[k].forca_def_min, labirinto[i][j].monstros_room[k].forca_def_max);
+                labirinto[i][j].monstros_room[k].saude = RandomFloat(labirinto[i][j].monstros_room[k].saude_min, labirinto[i][j].monstros_room[k].saude_max);
+
+
+
 
             }
         }
@@ -473,6 +678,10 @@ printf(" >  jogar -- Associa o jogador a um jogo já existente \n");
 printf(" >  sair -- Faz com que o utilizador saia do jogo. \n");
 printf(" >  terminar -- Faz com que o jogo termine para todos os utilizadores (Requer que o jogador esteje na sala inicial!)\n");
 printf(" >  logout -- Termina a aplicação 'cliente' para o utilizador apenas, assumindo que não se encontra em jogo!\n");
+printf(" >  norte -- Move o jogador para norte, caso seja possível.\n");
+printf(" >  sul -- Move o jogador para sul, caso seja possível.\n");
+printf(" >  este -- Move o jogador para este, caso seja possivel.\n");
+printf(" >  oeste -- Move o jogador para oeste, caso seja possível.\n");
 printf(" >  info -- Uma pequena descrição do estado do utilizador.\n");
 printf(" ----------------\n\n");
 }
@@ -515,10 +724,10 @@ do{
 
 	}
 	if(res == 1){
-	printf("[ERRO]: Comando nao reconhecido!\n");
+        printf("[ERRO]: Comando nao reconhecido!\n");
 	}
 	if(res == -1){
-	printf("[ERRO]: Sintaxe do comando inválida!\n");
+        printf("[ERRO]: Sintaxe do comando inválida!\n");
     }
 
 
