@@ -108,6 +108,7 @@ items tabela_items[8] =
 
 jogador lista_jogadores[10]={"NULL"};
 
+
 float RandomFloat(float a, float b) {  //genera valor aleatorio float
     float random = ((float) rand()) / (float) RAND_MAX;
     float diff = b - a;
@@ -126,6 +127,7 @@ void clear_struct(int j, int k, int n){
     }
     labirinto[j][k].jogadores_room[n].pid = 0;
     labirinto[j][k].jogadores_room[n].coin_count = 0;
+    labirinto[j][k].jogadores_room[n].flag_ingame = 0;
 
 }
 int random_number(int min_num, int max_num)   //genera valor aleatorio entre min_num e max_num
@@ -161,6 +163,44 @@ float porrada(int atk_attacker, int def_defender){  //PUNHADA
 
     return dano;
 }
+
+void player_dies(char *ign, int j, int k, int i){
+
+    int l, m, n, b;
+
+    for(n=0;n<10;n++){
+        if(strcmp(labirinto[j][k].jogadores_room[n].nome, ign) == 0) //procura o jogador em questao
+            break;
+        for(m=0;m<10;m++){
+            if(stcmp(labirinto[j][k].jogadores_room[n].inventory[m], "") != 0){  //procura items no inventário do jogador
+                for(b=0;b<5;b++){
+                    if(strcmp(labirinto[j][k].items_room[b].nome, "") == 0){  //procura os slots vazios de items na sala
+                       for(l=0;l<8;l++){
+                        if(strcmp(labirinto[j][k].jogadores_room[n].inventory[m], tabela_items[l].nome) == 0){  //compara  o array de strings com cada nome de cada item
+                            labirinto[j][k].items_room[b] = tabela_items[l];  //mete o item no slot livre na sala
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for(b=0;b<10;b++){                   //limpa o user da lista de jogadores
+            if(strcmp(lista_jogadores[b].nome,ign) == 0){
+                lista_jogadores[b].nome[0] = '\0';
+                lista_jogadores[b].id = 0;
+                lista_jogadores[b].pid = 0;
+                lista_jogadores[b].coin_count = 0;
+		lista_jogadores[b].flag_ingame = 0;
+                for(l=0;l<10;l++){
+                lista_jogadores[b].inventory[l] = "";  //limpa o inventário
+                }
+            }
+            }
+            clear_struct(j,k,n);       //limpa os valores do user do sitio onde estava no mapa
+}
+
 int avalia_frase(char **palavra, int aux) //char *ign
 {
     int i = 0,j, k, l, n , m,  timeout_aux, aux_pos_x, aux_pos_y;
@@ -330,6 +370,10 @@ int avalia_frase(char **palavra, int aux) //char *ign
                         if(labirinto[j][k].monstros_room[l].agressividade  == 1){    //verificar se ha monstros agressivos na sala
                             dano = porrada(labirinto[j][k].monstros_room[l].forca_atk, lista_jogadores[i].def);  //calcular o dano entre monstro/jogador
                             lista_jogadores[i].saude -= dano;
+                            if(lista_jogadores[i].saude <= 0){
+
+                                player_dies(ign, j, k, i);
+                            }
                             for(n=0;n<10;n++){
                                 if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
                                     labirinto[j][k].jogadores_room[n].saude = lista_jogadores[i].saude;  //fazer as alteracoes da hp em lista_jogadores e em labirinto[i][j].jogadores_room[n]
@@ -339,7 +383,7 @@ int avalia_frase(char **palavra, int aux) //char *ign
                             return;
                         }
                     }
-                    if(labirinto[j][k].p_norte == 1){ // alterações de 'colocar' o jogador no novo sítio e 'apaga-lo' do antigo
+                    if(labirinto[j][k].p_norte == 1){
                     for(m=0;m<10;m++){
                         if(strcmp(labirinto[j-1][k].jogadores_room[m].nome, "") == 0)
                             break;
@@ -370,6 +414,10 @@ int avalia_frase(char **palavra, int aux) //char *ign
                         if(labirinto[j][k].monstros_room[l].agressividade  == 1){    //verificar se ha monstros agressivos na sala
                             dano = porrada(labirinto[j][k].monstros_room[l].forca_atk, lista_jogadores[i].def);  //calcular o dano entre monstro/jogador
                             lista_jogadores[i].saude -= dano;
+                            if(lista_jogadores[i].saude <= 0){
+
+                                player_dies(ign, j, k, i);
+                            }
                             for(n=0;n<10;n++){
                                 if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
                                     labirinto[j][k].jogadores_room[n].saude = lista_jogadores[i].saude;  //fazer as alteracoes da hp em lista_jogadores e em labirinto[i][j].jogadores_room[n]
@@ -379,7 +427,7 @@ int avalia_frase(char **palavra, int aux) //char *ign
                             return;
                         }
                     }
-                    if(labirinto[j][k].p_sul == 1){ // alterações de 'colocar' o jogador no novo sítio e 'apaga-lo' do antigo
+                    if(labirinto[j][k].p_sul == 1){
                     for(m=0;m<10;m++){
                         if(strcmp(labirinto[j+1][k].jogadores_room[m].nome, "") == 0)
                             break;
@@ -410,6 +458,10 @@ int avalia_frase(char **palavra, int aux) //char *ign
                         if(labirinto[j][k].monstros_room[l].agressividade  == 1){    //verificar se ha monstros agressivos na sala
                             dano = porrada(labirinto[j][k].monstros_room[l].forca_atk, lista_jogadores[i].def);  //calcular o dano entre monstro/jogador
                             lista_jogadores[i].saude -= dano;
+                            if(lista_jogadores[i].saude <= 0){
+
+                                player_dies(ign, j, k, i);
+                            }
                             for(n=0;n<10;n++){
                                 if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
                                     labirinto[j][k].jogadores_room[n].saude = lista_jogadores[i].saude;  //fazer as alteracoes da hp em lista_jogadores e em labirinto[i][j].jogadores_room[n]
@@ -419,7 +471,7 @@ int avalia_frase(char **palavra, int aux) //char *ign
                             return;
                         }
                     }
-                    if(labirinto[j][k].p_este == 1){ // alterações de 'colocar' o jogador no novo sítio e 'apaga-lo' do antigo
+                    if(labirinto[j][k].p_este == 1){
                     for(m=0;m<10;m++){
                         if(strcmp(labirinto[j][k+1].jogadores_room[m].nome, "") == 0)
                             break;
@@ -450,6 +502,10 @@ int avalia_frase(char **palavra, int aux) //char *ign
                         if(labirinto[j][k].monstros_room[l].agressividade  == 1){    //verificar se ha monstros agressivos na sala
                             dano = porrada(labirinto[j][k].monstros_room[l].forca_atk, lista_jogadores[i].def);  //calcular o dano entre monstro/jogador
                             lista_jogadores[i].saude -= dano;
+                            if(lista_jogadores[i].saude <= 0){
+
+                                player_dies(ign, j, k, i);
+                            }
                             for(n=0;n<10;n++){
                                 if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
                                     labirinto[j][k].jogadores_room[n].saude = lista_jogadores[i].saude;  //fazer as alteracoes da hp em lista_jogadores e em labirinto[i][j].jogadores_room[n]
@@ -459,7 +515,7 @@ int avalia_frase(char **palavra, int aux) //char *ign
                             return;
                         }
                     }
-                    if(labirinto[j][k].p_oeste == 1){  // alterações de 'colocar' o jogador no novo sítio e 'apaga-lo' do antigo
+                    if(labirinto[j][k].p_oeste == 1){
                     for(m=0;m<10;m++){
                         if(strcmp(labirinto[j][k-1].jogadores_room[m].nome, "") == 0)
                             break;
@@ -656,7 +712,6 @@ void initialize_game(){
                     boss_count++;
 
                 labirinto[i][j].monstros_room[k] = tabela_monstros[aux_rand2];
-                //inicializar stats aleatoriamente
                 labirinto[i][j].monstros_room[k].forca_atk = random_number(labirinto[i][j].monstros_room[k].forca_atk_min, labirinto[i][j].monstros_room[k].forca_atk_max);
                 labirinto[i][j].monstros_room[k].forca_def = random_number(labirinto[i][j].monstros_room[k].forca_def_min, labirinto[i][j].monstros_room[k].forca_def_max);
                 labirinto[i][j].monstros_room[k].saude = RandomFloat(labirinto[i][j].monstros_room[k].saude_min, labirinto[i][j].monstros_room[k].saude_max);
@@ -678,10 +733,6 @@ printf(" >  jogar -- Associa o jogador a um jogo já existente \n");
 printf(" >  sair -- Faz com que o utilizador saia do jogo. \n");
 printf(" >  terminar -- Faz com que o jogo termine para todos os utilizadores (Requer que o jogador esteje na sala inicial!)\n");
 printf(" >  logout -- Termina a aplicação 'cliente' para o utilizador apenas, assumindo que não se encontra em jogo!\n");
-printf(" >  norte -- Move o jogador para norte, caso seja possível.\n");
-printf(" >  sul -- Move o jogador para sul, caso seja possível.\n");
-printf(" >  este -- Move o jogador para este, caso seja possivel.\n");
-printf(" >  oeste -- Move o jogador para oeste, caso seja possível.\n");
 printf(" >  info -- Uma pequena descrição do estado do utilizador.\n");
 printf(" ----------------\n\n");
 }
