@@ -166,26 +166,30 @@ float porrada(int atk_attacker, int def_defender){  //PUNHADA
 
 void player_dies(char *ign, int j, int k, int i){
 
-    int l, m, n, b;
+    int l = 0, m = 0, n, b = 0;
 
     for(n=0;n<10;n++){
         if(strcmp(labirinto[j][k].jogadores_room[n].nome, ign) == 0) //procura o jogador em questao
             break;
-        for(m=0;m<10;m++){
-            if(stcmp(labirinto[j][k].jogadores_room[n].inventory[m], "") != 0){  //procura items no inventário do jogador
-                for(b=0;b<5;b++){
-                    if(strcmp(labirinto[j][k].items_room[b].nome, "") == 0){  //procura os slots vazios de items na sala
-                       for(l=0;l<8;l++){
-                        if(strcmp(labirinto[j][k].jogadores_room[n].inventory[m], tabela_items[l].nome) == 0){  //compara  o array de strings com cada nome de cada item
-                            labirinto[j][k].items_room[b] = tabela_items[l];  //mete o item no slot livre na sala
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
+
+            do{
+
+                    while(strcmp(labirinto[j][k].jogadores_room[n].inventory[b], tabela_items[l].nome) !=0){  //procura o item na lista
+                        l++;
+                    }
+
+
+                    while(strcmp(labirinto[j][k].items_room[m].nome, "") != 0){   //procura o primeiro espaco em branco nos slots de items da sala
+                        m++;
+                    }
+                    labirinto[j][k].items_room[m] = tabela_items[l];  //mete o item na room
+
+
+            m=0, l=0;
+            b++;
+            }while(b<5);
+
             for(b=0;b<10;b++){                   //limpa o user da lista de jogadores
             if(strcmp(lista_jogadores[b].nome,ign) == 0){
                 lista_jogadores[b].nome[0] = '\0';
