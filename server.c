@@ -182,6 +182,8 @@ void player_dies(char *ign, int j, int k, int i){
 
                     while(strcmp(labirinto[j][k].items_room[m].nome, "") != 0){   //procura o primeiro espaco em branco nos slots de items da sala
                         m++;
+                        if(m == 10)
+                        goto del_player;
                     }
                     labirinto[j][k].items_room[m] = tabela_items[l];  //mete o item na room
 
@@ -189,7 +191,8 @@ void player_dies(char *ign, int j, int k, int i){
             m=0, l=0;
             b++;
             }while(b<5);
-
+            
+del_player:
             for(b=0;b<10;b++){                   //limpa o user da lista de jogadores
             if(strcmp(lista_jogadores[b].nome,ign) == 0){
                 lista_jogadores[b].nome[0] = '\0';
