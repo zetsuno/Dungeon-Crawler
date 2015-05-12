@@ -21,7 +21,7 @@ int NSEGUNDOS = 0;
 int njogadores = 0;
 int game_running_flag;
 
-typedef struct dados_players
+struct dados_players
 {   char nome[25];
     int id;     //jogador mestre tem ID = 1
     int pos_x; //abcissa da posição do jogador na matriz
@@ -35,8 +35,9 @@ typedef struct dados_players
     int id_sala; //id da sala onde se encontra
     int flag_ingame;  // se o jogador está ingame ou não
     int coin_count; //contador de moedas
-}jogador;
+};
 
+typedef struct dados_players jogador;
 
 typedef struct dados_items
 {
@@ -105,7 +106,7 @@ items tabela_items[8] =
  [7] = {"moeda", 0.1, 5, 0, 0, -99, -99, -99}
 };
 
-jogador lista_jogadores[10]={""};
+jogador lista_jogadores[10]={ {.nome = ""}, {.nome = ""},{.nome = ""}, {.nome = ""} ,{.nome = ""}, {.nome = ""},{.nome = ""}, {.nome = ""} ,{.nome = ""}, {.nome = ""} };
 
 char *descricao[10] = {
 
@@ -177,6 +178,35 @@ float porrada(int atk_attacker, int def_defender){  //PUNHADA
     return dano;
 }
 
+void getmasterplayer(char *ign){
+
+    int aux_rand, aux_pos_x, aux_pos_y, j, k,n;
+
+    aux_rand = random_number(0,9);
+
+    while(strcmp(lista_jogadores[aux_rand].nome, "") == 0){
+        aux_rand = random_number(0,9);
+    }
+
+    lista_jogadores[aux_rand].id = 1;   //fazer as alteracoes do id em lista_jogadores
+
+    aux_pos_x=lista_jogadores[aux_rand].pos_x;
+    aux_pos_y=lista_jogadores[aux_rand].pos_y;
+
+    for(j=0;j<DIM_LAB;j++){   //percorrer o labirinto
+        for(k=0;k<DIM_LAB;k++){
+            if(j == aux_pos_y && k == aux_pos_x){
+                for(n=0;n<10;n++){
+                    if(strcmp(ign, labirinto[j][k].jogadores_room[n].nome) == 0){
+                        labirinto[j][k].jogadores_room[n].id = 1;  //fazer as alteracoes do id em lista_jogadores e em labirinto[i][j].jogadores_room[n]
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 void player_dies(char *ign, int j, int k, int i){
 
     int l = 0, m = 0, n, b = 0;
@@ -213,13 +243,14 @@ void player_dies(char *ign, int j, int k, int i){
             }while(m<5);
 
 kill_player:
+
             for(b=0;b<10;b++){                   //limpa o user da lista de jogadores
             if(strcmp(lista_jogadores[b].nome,ign) == 0){
                 lista_jogadores[b].nome[0] = '\0';
                 lista_jogadores[b].id = 0;
                 lista_jogadores[b].pid = 0;
                 lista_jogadores[b].coin_count = 0;
-		lista_jogadores[b].flag_ingame = 0;
+                lista_jogadores[b].flag_ingame = 0;
                 for(l=0;l<10;l++){
                 lista_jogadores[b].inventory[l] = "";  //limpa o inventário
                 }
@@ -227,8 +258,57 @@ kill_player:
             }
             clear_struct(j,k,n);       //limpa os valores do user do sitio onde estava no mapa
 }
+void showgameresult(){
 
-int avalia_frase(char **palavra, int aux) //char *ign
+    int aux=0, aux2, i;
+    system("clear");
+
+    printf("---- Resultados ----\n");
+
+    for(i=0;i<10;i++){
+        if(strcmp(lista_jogadores[i].nome, "") != 0){
+        printf("'%s' > %d Moedas.\n", lista_jogadores[i].nome, lista_jogadores[i].coin_count);
+        if(aux < lista_jogadores[i].coin_count)
+            aux = lista_jogadores[i].coin_count;
+            aux2 = i;
+        }
+    }
+    printf("Vencedor: '%s' com %d Moedas.\n", lista_jogadores[aux2].nome, lista_jogadores[aux2].coin_count);
+
+}
+
+void join_game(char *ign, int pid_usr){
+
+int i, j, k,p;
+
+for(p=0;p<10;p++){
+    if(strcmp(lista_jogadores[p].nome, "") == 0){
+    strcpy(lista_jogadores[p].nome,ign);
+    lista_jogadores[p].pid = pid_usr;
+    break;
+    }
+}
+
+    for(j=0;j<DIM_LAB;j++){
+        for(k=0;k<DIM_LAB;k++){
+            if(labirinto[j][k].id == 1){
+               for(i=0;i<10;i++){
+                  if(strcmp(labirinto[j][k].jogadores_room[i].nome, "") == 0)
+                     strcpy(labirinto[j][k].jogadores_room[i].nome, ign);
+                     labirinto[j][k].jogadores_room[i].pid = pid_usr;
+                     goto end_copy_usr;
+
+               }
+            }
+        }
+    }
+
+end_copy_usr:
+;
+
+
+}
+int avalia_frase(char **palavra, int aux) //char *ign //int pid
 {
     int i = 0,j, k, l, n , m, p,  timeout_aux, aux_pos_x, aux_pos_y, aux_rand;
     char *str_aux;
@@ -274,8 +354,8 @@ int avalia_frase(char **palavra, int aux) //char *ign
         }
     }
     if(strcmp(palavra[i], "jogar") == 0){
-        for(j=0;j<njogadores;j++){
-            if(strcmp(ign, lista_jogadores[j].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
         if(NSEGUNDOS < 0){
@@ -288,31 +368,45 @@ int avalia_frase(char **palavra, int aux) //char *ign
             else{
                 system("kill -10 /* pids dos outros jogadores */");
                 printf("\nUm jogo acabou de ser lançado!\n");
-                join_game();
+                join_game(ign, pid);
                 system("clear");
                 game();
             }
     }
     if(strcmp(palavra[i], "sair") == 0){
         sair();
-        for(j=0;j<njogadores;j++){
-            if(strcmp(ign, lista_jogadores[j].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
-          if(lista_jogadores[j].id_sala == 1);
+        aux_pos_x=lista_jogadores[p].pos_x;
+        aux_pos_y=lista_jogadores[p].pos_y;
+
+          if(lista_jogadores[p].id_sala == 1){
+            for(j=0;j<DIM_LAB;j++){   //percorrer o labirinto  //desistir: remover jogador da lista, droppar os items
+                for(k=0;k<DIM_LAB;k++){
+                    if(j == aux_pos_y && k == aux_pos_x){
+                    player_dies(ign,j,k,p);
+                }
+            }
+        }
+    }
 
         // avisa os filhos que o jogador x saiu do jogo
-        //operações de retirar o jogador do labirinto
+
+
+
     }
     if(strcmp(palavra[i],"terminar") == 0){
-        for(j=0;j<njogadores;j++){
-            if(strcmp(ign, lista_jogadores[j].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
-        if(lista_jogadores[j].id == 1){
+        if(lista_jogadores[p].id == 1){
 
         system("kill -11 /*pid filhos*/");  //avisa os filhos que o jogo acabou
         showgameresult();     //mostra o resultado do jogo: moedas dos users, e quem tem mais, ou seja, quem ganhou.
+        game_running_flag = 0;
         return;
         }
         else{
@@ -320,21 +414,31 @@ int avalia_frase(char **palavra, int aux) //char *ign
         }
     }
     if(strcmp(palavra[i],"desistir") == 0){
-        for(j=0;j<njogadores;j++){
-            if(strcmp(ign, lista_jogadores[j].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
                 break;
         }
-        if(lista_jogadores[j].flag_ingame == 0){
+        if(lista_jogadores[p].flag_ingame == 0){
         printf("\n[ERRO]: O jogador não se encontra em jogo. \n");
         }
-        if(lista_jogadores[j].id == 1){
-            getmasterplayer();  //eleger outro jogador mestre
+        if(lista_jogadores[p].id == 1){
+            getmasterplayer(ign);  //eleger outro jogador mestre
         }
-        //desistir: remover jogador da lista, droppar os items
+        aux_pos_x=lista_jogadores[p].pos_x;
+        aux_pos_y=lista_jogadores[p].pos_y;
+
+        for(j=0;j<DIM_LAB;j++){   //percorrer o labirinto  //desistir: remover jogador da lista, droppar os items
+            for(k=0;k<DIM_LAB;k++){
+                if(j == aux_pos_y && k == aux_pos_x){
+                    player_dies(ign,j,k,p);
+                }
+            }
+        }
+
         njogadores--;
         if(njogadores == 0){
             showgameresult();
-
+            game_running_flag = 0;
         }
 
 
@@ -784,7 +888,7 @@ void initialize_game(){
     //Inicialização do inventário e stats do utilizador
     id_aux3 = 1;
     for(i=0;i<njogadores;i++){
-        if(strcmp(lista_jogadores[i].nome, "NULL") != 0){
+        if(strcmp(lista_jogadores[i].nome, "") != 0){
             lista_jogadores[i].inventory[0] = "faca";
             lista_jogadores[i].inventory[1] = "aspirina";
             lista_jogadores[i].peso = 2.1;
@@ -797,7 +901,7 @@ void initialize_game(){
             lista_jogadores[i].coin_count = 0;
             lista_jogadores[i].pos_x = id_aux1;
             lista_jogadores[i].pos_y = id_aux2;
-            id_aux1++;
+            id_aux3++;
         }
 
     }
