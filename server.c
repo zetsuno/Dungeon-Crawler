@@ -310,7 +310,7 @@ end_copy_usr:
 }
 int avalia_frase(char **palavra, int aux) //char *ign //int pid
 {
-    int i = 0,j, k, l, n , m, p,  timeout_aux, aux_pos_x, aux_pos_y, aux_rand;
+    int i = 0,j, k, l, n , m, p,  timeout_aux, aux_pos_x, aux_pos_y, aux_rand, aux1, aux2;
     char *str_aux;
     float dano;
     FILE *f;
@@ -391,12 +391,197 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             }
         }
     }
+    else{
+        printf("Você não está na sala inicial! Só pode sair do labirinto na sala inicial.");
+    }
+            // avisa os filhos que o jogador x saiu do jogo
+    }
+    if(strcmp(palavra[i],"quem") == 0){
 
-        // avisa os filhos que o jogador x saiu do jogo
+        for(p=0;p<10;p++){
+            if(strcmp(lista_jogadores[p].nome, "") != 0){
+                if(lista_jogadores[p].flag_ingame == 1){
+                    printf("'%s' > Ingame!\n", lista_jogadores[p].nome);
+                }
+                else
+                    printf("'%s' > Out of the game.\n", lista_jogadores[p].nome);
+            }
+        }
+    }
+    if(strcmp(palavra[i],"apanha") == 0){
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[p].pos_x;
+        aux_pos_y=lista_jogadores[p].pos_y;
+
+        //verificar se o item existe na sala ou se existe de todo
+        for(m=0;m<5;m++){
+            if(strcmp(palavra[i+1],labirinto[aux_pos_x][aux_pos_y].items_room[m].nome) == 0){
+            aux1=1;
+            break;
+            }
+        }
+        if(aux1 != 1){
+            printf("O item não existe na sala ou não existe de todo!\n");
+            return;
+        }
+        //procurar espaço livre no inventario do jogador
+        for(n=0;n<10;n++){
+            if(strcmp(lista_jogadores[p].inventory[n],"") == 0){
+                strcpy(lista_jogadores[p].inventory[n], labirinto[aux_pos_x][aux_pos_y].items_room[m].nome);
+                for(j=0;j<10;j++){
+                    if(strcmp(ign, labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].nome) == 0){
+                        strcpy(labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].inventory[n], labirinto[aux_pos_x][aux_pos_y].items_room[m].nome);
+                        }
+                    }
+                aux2 = 1;
+                break;
+            }
+        }
+        if(aux2 != 1){
+            printf("Não tenho mais espaço no inventorio!\n");
+            return;
+        }
+        //adicionar os efeitos de carregar o item ao jogador
+        if(labirinto[aux_pos_x][aux_pos_y].items_room[m].carry_effect != -99)
+            lista_jogadores[p].def += labirinto[aux_pos_x][aux_pos_y].items_room[m].carry_effect;
+        for(j=0;j<10;j++){
+            if(strcmp(ign, labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].nome) == 0){
+                if(labirinto[aux_pos_x][aux_pos_y].items_room[m].carry_effect != -99)
+                    lista_jogadores[p].def += labirinto[aux_pos_x][aux_pos_y].items_room[m].carry_effect;
+            }
+        }
+        //eliminar o item da sala
+
+        labirinto[aux_pos_x][aux_pos_y].items_room[m].nome[0] = '\0';
 
 
 
     }
+    if(strcmp(palavra[i],"usa") == 0){
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[p].pos_x;
+        aux_pos_y=lista_jogadores[p].pos_y;
+
+        //verificar se o user tem o item
+        for(m=0;m<10;m++){
+            if(strcmp(ign, labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].nome) == 0)
+            break;
+        }
+        for(k=0;k<5;k++){
+            if(strcmp(palavra[i+1], labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].inventory[k]) == 0){
+            aux1 = 1;
+            break;
+            }
+
+        }
+
+        if(aux1 != 1){
+            printf("Nao tenho tal item!\n");
+            return;
+        }
+        // 'usar' o item
+        for(n=0;n<8;n++){
+            if(strcmp(palavra[i+1],tabela_items[n].nome) == 0){
+                if(tabela_items[n].use_effect != -99){
+                    lista_jogadores[p].saude += tabela_items[n].use_effect;
+                    labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].saude += tabela_items[n].use_effect;
+                }
+                //apagar o item caso ele chegue ao limite de usos possíveis e reduzir o peso do item ao utilizador.
+                if(tabela_items[n].max_usos != -99){
+                    for(l=0;l<10;l++){
+                        if(strcmp(palavra[i+1], labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].inventory[l])){
+
+                            labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].peso -= tabela_items[n].peso;
+                            labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].inventory[l] = "";
+                            lista_jogadores[p].peso -= tabela_items[n].peso;
+                            lista_jogadores[p].inventory[l] = "";
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if(strcmp(palavra[i],"larga") == 0){
+
+    for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[p].pos_x;
+        aux_pos_y=lista_jogadores[p].pos_y;
+
+        //verificar se o user tem o item
+        for(m=0;m<10;m++){
+            if(strcmp(ign, labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].nome) == 0)
+            break;
+        }
+        for(k=0;k<5;k++){
+            if(strcmp(palavra[i+1], labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].inventory[k]) == 0){
+            aux1 = 1;
+            break;
+            }
+
+        }
+
+        if(aux1 != 1){
+            printf("Nao tenho tal item!\n");
+            return;
+        }
+        //colocar o item na sala caso haja espaço
+        for(j=0;j<5;j++){
+            if(strcmp(labirinto[aux_pos_x][aux_pos_y].items_room[j].nome, "") == 0){
+                strcpy(labirinto[aux_pos_x][aux_pos_y].items_room[j].nome, palavra[i+1]);
+                aux2 = 1;
+                break;
+
+            }
+        }
+        if(aux2 != 1){
+            printf("Não há espaço na sala! O item foi destruido!\n");
+
+        }
+
+
+        //remover o item do inventorio
+        lista_jogadores[p].inventory[k] = "";
+        labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].inventory[k] = "";
+
+    }
+    if(strcmp(palavra[i],"diz") == 0){
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[p].pos_x;
+        aux_pos_y=lista_jogadores[p].pos_y;
+
+        for(j=0;j<10;j++){
+            if(strcmp(labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].nome,"") != 0){
+             //enviar palavra[] para labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].pid
+             //ler palavra no lado do cliente, ex: jogador '%s'(lista_jogadores[p].nome) diz tal tal tal (palavra[])
+            }
+
+        }
+    }
+    if(strcmp(palavra[i],"grita") == 0){
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        for(j=0;j<10;j++){
+            if(strcmp(lista_jogadores[j].nome, "") != 0){
+            //enviar palavra[] para lista_jogadores[j].pid
+            //ler palavra no lado do cliente, ex: jogador '%s'(lista_jogadores[p].nome) grita tal tal tal (palavra[])
+                }
+            }
+        }
+
     if(strcmp(palavra[i],"terminar") == 0){
         for(p=0;p<njogadores;p++){
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
