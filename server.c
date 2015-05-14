@@ -91,7 +91,7 @@ monstros tabela_monstros[5] =
  [1] = {"escorpiao", 0, 1, 7, 0, 5, 7, 0, 7, 9, 10, 1, 0, "moeda"},
  [2] = {"lobisomem", 0, 5, 7, 0, 5, 7, 0, 7, 9, 4, 1, 1, "faca"},
  [3] = {"pedobear", 0, 8, 10, 0, 10, 12, 0,  10, 10, 2, 0, 0, "faca moeda"},  //quando é mais que 1 item, podemos usar o strtok pra dividir isto bem, e mais facilmente
- [4] = {"b0ss", 0, 10, 12, 0, 15, 15, 0, 15, 15, 1, 0, 0, "moeda moeda moeda moeda moeda"}
+ [4] = {"b0ss", 0, 10, 12, 0, 15, 15, 0, 15, 15, 1, 0, 0, "5moedas"}
 };
 
 items tabela_items[8] =
@@ -310,8 +310,8 @@ end_copy_usr:
 }
 int avalia_frase(char **palavra, int aux) //char *ign //int pid
 {
-    int i = 0,j, k, l, n , m, p,  timeout_aux, aux_pos_x, aux_pos_y, aux_rand, aux1, aux2;
-    char *str_aux;
+    int i = 0,j, k, l, n , m, p, x,y,  timeout_aux, aux_pos_x, aux_pos_y, aux_rand, aux1, aux2, flag_its_a_player, flag_its_a_monster;
+    char *str_aux, c1,c2,c3,c4;
     float dano;
     FILE *f;
 
@@ -350,9 +350,28 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             return;
 
             }
-        }
+            for(x = 0; x < DIM_LAB; x++){
+                for(y = 0; y < DIM_LAB; y++){
+                    fscanf(f,"%c%c%c%c ",&c1,&c2,&c3,&c4);
+                    if(c1 == '0' || c1 == '1'){
+                        labirinto[x][y].p_norte = (c1);
+                    }
+                    if(c2 == '0' || c2 == '1'){
+                        labirinto[x][y].p_este = (c2);
+                    }
+                    if(c3 == '0' || c3 == '1'){
+                        labirinto[x][y].p_sul = (c3);
+                    }
+                    if(c4 == '0' || c4 == '1'){
+                        labirinto[x][y].p_oeste = (c4);
+                    }
+                }
+            }
+             fclose(f);
+            }
         }
     }
+
     if(strcmp(palavra[i], "jogar") == 0){
         for(p=0;p<njogadores;p++){
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
@@ -405,6 +424,126 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
                 }
                 else
                     printf("'%s' > Out of the game.\n", lista_jogadores[p].nome);
+            }
+        }
+    }
+    if(strcmp(palavra[i],"ataca") == 0){
+        for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            break;
+        }
+        aux_pos_x=lista_jogadores[p].pos_x;
+        aux_pos_y=lista_jogadores[p].pos_y;
+
+        for(j=0;j<2;j++){ //Procura o monstro a atacar na sala
+            if(strcmp(palavra[i+1], labirinto[aux_pos_x][aux_pos_y].monstros_room[j].nome) == 0){
+                aux1 = 1;
+                flag_its_a_monster = 1;
+                break;
+            }
+        }
+        for(j=0;j<10;j++){ //Procura o jogador a atacar na sala
+            if(strcmp(palavra[i+1], labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].nome) == 0){
+                aux1 = 1;
+                flag_its_a_player = 1;
+                break;
+            }
+        }
+
+        if(aux1 != 1){
+            printf("[ERRO]: Não encontrado o que se pretende atacar!\n");
+            return;
+        }
+        for(k=0;k<10;k++){  //procura a arma no inventório do jogador
+            if(strcmp(palavra[i+2], lista_jogadores[p].inventory[k])){
+            aux2 = 1;
+            break;
+            }
+        }
+        if(aux2 != 1){
+            printf("[ERRO]: Não tenho tal arma!");
+            return;
+        }   //operações de diminuição de vida caso o atacado seja um monstro.
+        if(flag_its_a_monster == 1){
+            for(l=0;l<8;l++){
+                if(strcmp(palavra[i+2], tabela_items[l].nome) == 0){
+                    dano = porrada(tabela_items[l].forca_atk, labirinto[aux_pos_x][aux_pos_y].monstros_room[j].forca_def);
+                    labirinto[aux_pos_x][aux_pos_y].monstros_room[j].saude -= dano;
+                    dano = porrada(labirinto[aux_pos_x][aux_pos_y].monstros_room[j].forca_atk, lista_jogadores[p].def);
+                    lista_jogadores[p].saude -= dano;
+                    for(m=0;m<10;m++){
+                        if(strcmp(ign, labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].nome) == 0){
+                            labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].saude -=dano;
+                            break;
+                        }
+                    }
+                    if(strcmp(palavra[i+2], "granada") == 0){
+                        lista_jogadores[p].saude -= 5.0;
+                        labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].saude -= 5.0;
+                    } //caso jogador morra;
+                    if(lista_jogadores[p].saude < 0){
+                        player_dies(ign, aux_pos_x, aux_pos_y, p);
+                        printf("[INFO]: U DED SON\n");
+                    } //caso monstro morra; (drops)
+                    if(labirinto[aux_pos_x][aux_pos_y].monstros_room[j].saude < 0){
+                        if(strcmp(labirinto[aux_pos_x][aux_pos_y].monstros_room[j].drops, "5moedas") == 0){
+                            labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].coin_count +=5;
+                            lista_jogadores[p].coin_count +=5;
+                        }
+                        if(strcmp(labirinto[aux_pos_x][aux_pos_y].monstros_room[j].drops, "moeda") == 0){
+                            labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].coin_count +=1;
+                            lista_jogadores[p].coin_count +=1;
+                        }
+                        if(strcmp(labirinto[aux_pos_x][aux_pos_y].monstros_room[j].drops, "faca moeda") == 0){
+                            for(n=0;n<5;n++){
+                                if(strcmp(labirinto[aux_pos_x][aux_pos_y].items_room[n].nome, "") == 0){
+                                labirinto[aux_pos_x][aux_pos_y].items_room[n] = tabela_items[3];
+                                break;
+                                }
+                            }
+                            labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].coin_count +=1;
+                            lista_jogadores[p].coin_count +=1;
+                        }
+                        if(strcmp(labirinto[aux_pos_x][aux_pos_y].monstros_room[j].drops, "faca") == 0){
+                            for(n=0;n<5;n++){
+                                if(strcmp(labirinto[aux_pos_x][aux_pos_y].items_room[n].nome, "") == 0){
+                                labirinto[aux_pos_x][aux_pos_y].items_room[n] = tabela_items[3];
+                                break;
+                                }
+                            }
+                        }
+                       labirinto[aux_pos_x][aux_pos_y].monstros_room[j].nome[0]='\0';
+                    }
+                }
+            }
+        }
+        if(flag_its_a_player == 1){ //operações de diminuição de vida caso o atacado seja um jogador
+            dano = porrada(labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].atk, lista_jogadores[p].def);
+            lista_jogadores[p].saude -= dano;
+            for(m=0;m<10;m++){
+                if(strcmp(ign, labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].nome) == 0){
+                    labirinto[aux_pos_x][aux_pos_y].jogadores_room[m].saude -= dano;
+                    break;
+                }
+                //enviar mensagem ao atacado (labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].pid)
+                //foi atacado por 'ign', e recebeu 'dano' de dano!
+            }
+            if(lista_jogadores[p].saude < 0){
+                        player_dies(ign, aux_pos_x, aux_pos_y, p);
+            }
+
+            dano = porrada(tabela_items[l].forca_atk, labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].def);
+            labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].saude -= dano;
+            for(m=0;m<10;m++){
+                if(strcmp(palavra[i+1], lista_jogadores[m].nome) == 0){
+                    lista_jogadores[m].saude -= dano;
+                    break;
+                }
+            }
+            if(lista_jogadores[m].saude < 0){
+
+                player_dies(palavra[i+1], aux_pos_x, aux_pos_y, m);
+                //enviar info ao user, a avisar que morreu
             }
         }
     }
@@ -711,6 +850,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
                             break;
                     }
                     labirinto[j-1][k].jogadores_room[m] = labirinto[j][k].jogadores_room[n];
+                    labirinto[j-1][k].jogadores_room[m].pos_x = j-1;
+                    labirinto[j-1][k].jogadores_room[m].pos_y = k;
+                    lista_jogadores[p].pos_x = j-1;
+                    lista_jogadores[p].pos_y = k;
                     clear_struct(j,k,n);
                     }
                     else{
@@ -755,6 +898,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
                             break;
                     }
                     labirinto[j+1][k].jogadores_room[m] = labirinto[j][k].jogadores_room[n];
+                    labirinto[j+1][k].jogadores_room[m].pos_x = j+1;
+                    labirinto[j+1][k].jogadores_room[m].pos_y = k;
+                    lista_jogadores[p].pos_x = j+1;
+                    lista_jogadores[p].pos_y = k;
                     clear_struct(j,k,n);
                     }
                     else{
@@ -799,6 +946,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
                             break;
                     }
                     labirinto[j][k+1].jogadores_room[m] = labirinto[j][k].jogadores_room[n];
+                    labirinto[j][k+1].jogadores_room[m].pos_x = j;
+                    labirinto[j][k+1].jogadores_room[m].pos_y = k+1;
+                    lista_jogadores[p].pos_x = j;
+                    lista_jogadores[p].pos_y = k+1;
                     clear_struct(j,k,n);
                     }
                     else{
@@ -843,6 +994,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
                             break;
                     }
                     labirinto[j][k-1].jogadores_room[m] = labirinto[j][k].jogadores_room[n];
+                    labirinto[j][k-1].jogadores_room[m].pos_x = j;
+                    labirinto[j][k-1].jogadores_room[m].pos_y = k-1;
+                    lista_jogadores[p].pos_x = j;
+                    lista_jogadores[p].pos_y = k-1;
                     clear_struct(j,k,n);
                     }
                     else{
