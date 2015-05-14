@@ -527,12 +527,12 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
                 }
                 //enviar mensagem ao atacado (labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].pid)
                 //foi atacado por 'ign', e recebeu 'dano' de dano!
-            }
-            if(lista_jogadores[p].saude < 0){
-                        player_dies(ign, aux_pos_x, aux_pos_y, p);
+
             }
 
+
             dano = porrada(tabela_items[l].forca_atk, labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].def);
+            //retribuiu com 'dano' de dano!
             labirinto[aux_pos_x][aux_pos_y].jogadores_room[j].saude -= dano;
             for(m=0;m<10;m++){
                 if(strcmp(palavra[i+1], lista_jogadores[m].nome) == 0){
@@ -542,8 +542,11 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             }
             if(lista_jogadores[m].saude < 0){
 
-                player_dies(palavra[i+1], aux_pos_x, aux_pos_y, m);
+                        player_dies(palavra[i+1], aux_pos_x, aux_pos_y, m);
                 //enviar info ao user, a avisar que morreu
+            }
+            if(lista_jogadores[p].saude < 0){
+                        player_dies(ign, aux_pos_x, aux_pos_y, p);
             }
         }
     }
