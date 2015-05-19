@@ -281,6 +281,12 @@ void join_game(char *ign, int pid_usr){
 
 int i, j, k,p;
 
+for(p=0;p<njogadores;p++){
+            if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
+            printf("\nJá existe um jogador com esse nome no jogo!");
+            return;
+        }
+
 for(p=0;p<10;p++){
     if(strcmp(lista_jogadores[p].nome, "") == 0){
     strcpy(lista_jogadores[p].nome,ign);
@@ -398,6 +404,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
 
@@ -431,6 +441,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
         for(p=0;p<njogadores;p++){
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
+        }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
         }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
@@ -555,6 +569,11 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
+
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
 
@@ -607,6 +626,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
 
@@ -655,6 +678,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
 
@@ -700,6 +727,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
 
@@ -716,6 +747,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
         for(j=0;j<10;j++){
             if(strcmp(lista_jogadores[j].nome, "") != 0){
             //enviar palavra[] para lista_jogadores[j].pid
@@ -728,6 +763,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
         for(p=0;p<njogadores;p++){
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
+        }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
         }
         if(lista_jogadores[p].id == 1){
 
@@ -745,7 +784,8 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
                 break;
         }
-        if(lista_jogadores[p].flag_ingame == 0){
+
+        if(lista_jogadores[p].flag_ingame != 1){
         printf("\n[ERRO]: O jogador não se encontra em jogo. \n");
         }
         if(lista_jogadores[p].id == 1){
@@ -789,6 +829,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[j].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
         if(lista_jogadores[j].saude > 15.0){
             printf("Feelin' good!\n");
         }
@@ -823,6 +867,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
          for(p=0;p<njogadores;p++){
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
+        }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
         }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
@@ -872,6 +920,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
 
@@ -919,6 +971,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
          for(p=0;p<njogadores;p++){
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
+        }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
         }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
@@ -968,6 +1024,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
         }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
+        }
         aux_pos_x=lista_jogadores[p].pos_x;
         aux_pos_y=lista_jogadores[p].pos_y;
 
@@ -1015,6 +1075,10 @@ int avalia_frase(char **palavra, int aux) //char *ign //int pid
          for(p=0;p<njogadores;p++){
             if(strcmp(ign, lista_jogadores[p].nome) == 0) // ign é o username INGAME do jogador, é diferente do username utilizado pelo cliente! (possivelmente enviado por fifos)
             break;
+        }
+        if(lista_jogadores[p].flag_ingame != 1){
+            printf("\n[ERRO]: O jogador não está em jogo!");
+            return;
         }
          aux_pos_x=lista_jogadores[p].pos_x;
          aux_pos_y=lista_jogadores[p].pos_y;
